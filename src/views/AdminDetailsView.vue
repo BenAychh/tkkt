@@ -2,7 +2,6 @@
 import { useRoute } from 'vue-router';
 import { computed, watch } from 'vue';
 import { useAdminsStore } from '@/stores/admins';
-import AdminTitle from '@/components/AdminTitle.vue';
 import NamedHistory from '@/components/NamedHistory.vue';
 
 const route = useRoute();
@@ -21,19 +20,12 @@ watch(adminId, () => {
 </script>
 
 <template>
-  <div v-if="adminStore.getAdmin">
-    <AdminTitle :admin="adminStore.getAdmin" />
-  </div>
-  <div class="p-3">
-    <div class="mt-6">
-      <div class="text-lg font-semibold mb-3">Historical Log</div>
-      <NamedHistory
-        v-if="adminStore.getAdmin"
-        :history="adminStore.getAdmin.history"
-        generic-name="this admin"
-      />
-    </div>
-  </div>
+  <NamedHistory
+    v-if="adminStore.getAdmin"
+    :admins="adminStore.getAdmins"
+    :history="adminStore.getAdmin.history"
+    generic-name="this admin"
+  />
 </template>
 
 <style scoped></style>

@@ -21,12 +21,12 @@ const router = createRouter({
             },
             {
               path: 'admins',
-              name: 'admins',
+              name: 'event.admins',
               component: () => import('@/views/AdminListView.vue'),
             },
             {
               path: 'admin/:adminId',
-              name: 'admin',
+              name: 'event.admin',
               component: () => import('@/views/AdminDetailsView.vue'),
             },
             {

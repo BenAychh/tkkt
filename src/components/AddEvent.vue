@@ -13,7 +13,6 @@ import type { EventInsert } from '@/db/events';
 import { uuidv7 } from 'uuidv7';
 
 const events = useEventsStore();
-events.loadEvents();
 
 const toast = useToast();
 const router = useRouter();

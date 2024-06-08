@@ -71,7 +71,7 @@ export const useAdminsStore = defineStore('admins', {
     async loadAdmin(id: string): Promise<void> {
       this.admin = await getAdmin(id);
     },
-    async setMyAdminId(id: string): Promise<void> {
+    async setMyAdminId(id: string | null): Promise<void> {
       this.myAdminId = id;
     },
     async insertAdmin(admin: Omit<AdminInsert, 'eventId'>): Promise<void> {

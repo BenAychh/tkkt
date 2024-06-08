@@ -2,10 +2,16 @@
 import Card from 'primevue/card';
 import NamedHistory from '@/components/NamedHistory.vue';
 import { useEventsStore } from '@/stores/events';
+import EventHeader from '@/components/EventHeader.vue';
+import { useAdminsStore } from '@/stores/admins';
 
 const eventStore = useEventsStore();
+const adminStore = useAdminsStore();
 </script>
 <template>
+  <EventHeader>
+    <template #title>Dashboard</template>
+  </EventHeader>
   <div class="flex flex-wrap px-3 gap-6">
     <router-link to="students">
       <Card style="width: 25rem; overflow: hidden">
@@ -31,16 +37,15 @@ const eventStore = useEventsStore();
         </template>
       </Card>
     </router-link>
-    <div class="mt-6">
-      <div class="text-lg font-semibold mb-3">Historical Log</div>
-      <NamedHistory
-        v-if="eventStore.event"
-        :history="eventStore.event.history"
-        class="w-full"
-        generic-name="this event"
-      />
-    </div>
+    <div class="mt-6"></div>
   </div>
+  <NamedHistory
+    v-if="eventStore.event"
+    :admins="adminStore.admins"
+    :history="eventStore.event.history"
+    class="w-full my-6"
+    generic-name="this event"
+  />
 </template>
 
 <style scoped></style>

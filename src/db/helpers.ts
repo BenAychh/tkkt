@@ -67,7 +67,6 @@ const keySorter = sort<string[]>((a: string, b: string) => {
 });
 
 export const handleCRDTMessages = async (messages: CRDTMessage[]): Promise<void> => {
-  console.log('handleCRDTMessages', messages);
   for (const msg of messages) {
     switch (msg.dataset) {
       case 'students':

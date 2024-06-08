@@ -1,16 +1,19 @@
 <script lang="ts" setup>
-import { useStudentsStore } from '@/stores/students'
-import VirtualScroller from 'primevue/virtualscroller'
-import AddStudent from '@/components/AddStudent.vue'
+import { useStudentsStore } from '@/stores/students';
+import VirtualScroller from 'primevue/virtualscroller';
+import AddStudent from '@/components/AddStudent.vue';
+import GeneralHeader from '@/components/EventHeader.vue';
 
-const studentStore = useStudentsStore()
-studentStore.loadStudents()
+const studentStore = useStudentsStore();
+studentStore.loadStudents();
 </script>
 <template>
-  <div class="flex justify-between px-3 items-center sticky top-0">
-    <h1 class="text-lg font-semibold">All Students</h1>
-    <AddStudent />
-  </div>
+  <GeneralHeader>
+    <template #title>All Students</template>
+    <template #actions>
+      <AddStudent />
+    </template>
+  </GeneralHeader>
   <VirtualScroller :delay="150" :itemSize="50" :items="studentStore.getStudents">
     <template v-slot:item="{ item, options }">
       <router-link :to="`student/${item.sid}`" append>
