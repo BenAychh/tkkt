@@ -1,25 +1,25 @@
 <script lang="ts" setup>
-import { useRoute } from 'vue-router'
-import { computed, watch } from 'vue'
-import { useStudentsStore } from '@/stores/students'
-import AddTicket from '@/components/AddTicket.vue'
-import StudentTitle from '@/components/StudentTitle.vue'
-import TicketDetail from '@/components/TicketDetail.vue'
-import StudentHistory from '@/components/StudentHistory.vue'
+import { useRoute } from 'vue-router';
+import { computed, watch } from 'vue';
+import { useStudentsStore } from '@/stores/students';
+import AddTicket from '@/components/AddTicket.vue';
+import StudentTitle from '@/components/StudentTitle.vue';
+import TicketDetail from '@/components/TicketDetail.vue';
+import NamedHistory from '@/components/NamedHistory.vue';
 
-const route = useRoute()
-const studentStore = useStudentsStore()
+const route = useRoute();
+const studentStore = useStudentsStore();
 const studentId = computed(() => {
-  const id = route.params.studentId
+  const id = route.params.studentId;
   if (Array.isArray(id)) {
-    return id[0]
+    return id[0];
   }
-  return id
-})
-studentStore.loadStudent(studentId.value)
+  return id;
+});
+studentStore.loadStudent(studentId.value);
 watch(studentId, () => {
-  studentStore.loadStudent(studentId.value)
-})
+  studentStore.loadStudent(studentId.value);
+});
 </script>
 
 <template>
@@ -37,7 +37,13 @@ watch(studentId, () => {
     </div>
   </div>
   <div class="p-3">
-    <StudentHistory v-if="studentStore.getStudent" :history="studentStore.getStudent?.history" />
+    <div class="text-lg font-semibold mb-3">Historical Log</div>
+    <NamedHistory
+      v-if="studentStore.student"
+      :history="studentStore.student.history"
+      class="w-full"
+      generic-name="this event"
+    />
   </div>
 </template>
 

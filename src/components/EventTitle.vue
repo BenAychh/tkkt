@@ -1,15 +1,15 @@
 <script lang="ts" setup>
-import type { EventWithHistory } from '@/domain/event'
-import { defineProps } from 'vue'
-import { useEventsStore } from '@/stores/events'
+import type { EventWithHistory } from '@/domain/event';
+import { defineProps } from 'vue';
+import { useEventsStore } from '@/stores/events';
 
-const eventStore = useEventsStore()
-const props = defineProps<{ event: EventWithHistory }>()
+const eventStore = useEventsStore();
+const props = defineProps<{ event: EventWithHistory }>();
 const saveName = (keyboardEvent: Event) => {
-  const target = keyboardEvent.target as HTMLDivElement
-  target.blur()
-  eventStore.upsertEvent({ id: props.event!.id, name: target.innerText.trim() })
-}
+  const target = keyboardEvent.target as HTMLDivElement;
+  target.blur();
+  eventStore.updateEvent({ id: props.event!.id, name: target.innerText.trim() });
+};
 </script>
 
 <template>

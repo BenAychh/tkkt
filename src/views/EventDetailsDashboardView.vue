@@ -1,5 +1,9 @@
 <script lang="ts" setup>
-import Card from 'primevue/card'
+import Card from 'primevue/card';
+import NamedHistory from '@/components/NamedHistory.vue';
+import { useEventsStore } from '@/stores/events';
+
+const eventStore = useEventsStore();
 </script>
 <template>
   <div class="flex flex-wrap px-3 gap-6">
@@ -27,6 +31,15 @@ import Card from 'primevue/card'
         </template>
       </Card>
     </router-link>
+    <div class="mt-6">
+      <div class="text-lg font-semibold mb-3">Historical Log</div>
+      <NamedHistory
+        v-if="eventStore.event"
+        :history="eventStore.event.history"
+        class="w-full"
+        generic-name="this event"
+      />
+    </div>
   </div>
 </template>
 

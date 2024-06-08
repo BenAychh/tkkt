@@ -181,4 +181,4 @@ export const setupSql = `
 
     CREATE INDEX IF NOT EXISTS access_student_log_studentSid_eventId_index ON access_student_logs (studentSid, eventId);
     CREATE INDEX IF NOT EXISTS access_student_log_adminId_index ON access_student_logs (adminId);
-`
+`;

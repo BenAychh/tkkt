@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import MainApp from '@/views/MainApp.vue'
+import { createRouter, createWebHistory } from 'vue-router';
+import MainApp from '@/views/MainApp.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -17,37 +17,37 @@ const router = createRouter({
             {
               path: 'dashboard',
               name: 'event.dashboard',
-              component: () => import('@/views/EventDetailsDashboardView.vue')
+              component: () => import('@/views/EventDetailsDashboardView.vue'),
             },
             {
               path: 'admins',
               name: 'admins',
-              component: () => import('@/views/AdminListView.vue')
+              component: () => import('@/views/AdminListView.vue'),
             },
-            // {
-            //   path: 'admin/:adminId',
-            //   name: 'admin',
-            //   component: () => import('@/views/AdminDetailsView.vue')
-            // },
+            {
+              path: 'admin/:adminId',
+              name: 'admin',
+              component: () => import('@/views/AdminDetailsView.vue'),
+            },
             {
               path: 'students',
               name: 'event.students',
-              component: () => import('@/views/StudentListView.vue')
+              component: () => import('@/views/StudentListView.vue'),
             },
             {
               path: 'student/:studentId',
               name: 'event.student',
-              component: () => import('@/views/StudentDetailsView.vue')
-            }
-          ]
-        }
-      ]
+              component: () => import('@/views/StudentDetailsView.vue'),
+            },
+          ],
+        },
+      ],
     },
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/app'
-    }
-  ]
-})
+      redirect: '/app',
+    },
+  ],
+});
 
-export default router
+export default router;
