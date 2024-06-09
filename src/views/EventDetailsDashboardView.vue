@@ -33,7 +33,7 @@ const adminStore = useAdminsStore();
         <template #title>Admin</template>
         <template #subtitle>Manage Admins</template>
         <template #content>
-          <p class="m-0">Add and remove folks who are selling and redeeming ticket</p>
+          <p class="m-0">Add and remove folks who are selling and redeeming tickets</p>
         </template>
       </Card>
     </router-link>

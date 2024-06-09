@@ -26,7 +26,7 @@ watch(eventId, () => {
 
 <template>
   <BlockUI :blocked="!adminStore.getMyAdminId">
-    <div class="sticky rounded-r-full mr-3 top-0 z-10 backdrop-blur !bg-white/90 shadow-md">
+    <div class="sticky rounded-br-full top-0 z-10 backdrop-blur !bg-white/90 shadow-md">
       <EventBreadcrumbs
         :event="eventStore.getEvent"
         :routeMatch="route.matched"

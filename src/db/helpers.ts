@@ -66,89 +66,105 @@ const keySorter = sort<string[]>((a: string, b: string) => {
   return a.localeCompare(b);
 });
 
-export const handleCRDTMessages = async (messages: CRDTMessage[]): Promise<void> => {
+const insertCRDTMessages = async (
+  messages: CRDTMessage[],
+  exec: Execer,
+): Promise<CRDTMessage[]> => {
+  const crdtInsert = `
+      INSERT INTO messages_crdt (hlc, dataset, rowId, batchId, col, val, actor)
+      VALUES ${messages.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ')}
+      RETURNING hlc
+  `;
+  const crdtArgs: string[] = [];
   for (const msg of messages) {
-    switch (msg.dataset) {
-      case 'students':
-        await handleStudentCRDTMessage(msg as CRDTMessage & { dataset: 'students' });
-        break;
-      default:
-        await handleCRDTMessage(msg);
-    }
+    crdtArgs.push(msg.hlc, msg.dataset, msg.rowId, msg.batchId, msg.col, msg.val, msg.actor);
   }
+  const crdtResponse = await exec(crdtInsert, crdtArgs);
+  const insertedHlcs: string[] = crdtResponse.result?.resultRows.map((row: any) => row.hlc) || [];
+  const insertHlcMap = insertedHlcs.reduce(
+    (acc, hlc) => {
+      acc[hlc] = true;
+      return acc;
+    },
+    {} as Record<string, boolean>,
+  );
+  return messages.filter((msg) => insertHlcMap[msg.hlc]);
 };
 
-const handleCRDTMessage = async (msg: CRDTMessage): Promise<void> => {
+const getHlcThatWereActuallyUpdates = async (insertedMessages: CRDTMessage[], exec: Execer) => {
+  // latest HLC for each dataset/row/col combo
+  const latestTimestampSQL = `
+      SELECT just_inserted.hlc,
+             just_inserted.hlc >= max(messages_crdt.hlc) AS is_latest
+      FROM (SELECT hlc, dataset, rowid, col
+            FROM messages_crdt
+            WHERE hlc IN (${insertedMessages.map(() => '?').join(', ')})) just_inserted
+               JOIN messages_crdt
+                    ON just_inserted.dataset = messages_crdt.dataset AND just_inserted.rowid = messages_crdt.rowid AND
+                       just_inserted.col = messages_crdt.col
+      GROUP BY just_inserted.hlc
+      ORDER BY messages_crdt.hlc DESC
+  `;
+  const latestTimestampResponse = await exec(
+    latestTimestampSQL,
+    insertedMessages.map((msg) => msg.hlc),
+  );
+  const latestTimestamps: { hlc: string; is_latest: boolean }[] =
+    latestTimestampResponse.result?.resultRows || [];
+  return latestTimestamps.reduce(
+    (acc, row) => {
+      acc[row.hlc] = row.is_latest;
+      return acc;
+    },
+    {} as Record<string, boolean>,
+  );
+};
+
+function getSqlStringValue(msg: CRDTMessage<Record<string, any>>) {
+  const value = deserializeValue(msg.val);
+  let valueInSql = value;
+  // it's all local, if people want to sql inject themselves, let them
+  if (typeof value === 'string') {
+    valueInSql = `'${value}'`;
+  } else if (value === null) {
+    valueInSql = 'NULL';
+  } else if (typeof value === 'boolean') {
+    valueInSql = value ? 'TRUE' : 'FALSE';
+  }
+  return valueInSql;
+}
+
+export const handleCRDTMessages = async (messages: CRDTMessage[]): Promise<void> => {
   const fn = async (exec: Execer) => {
     try {
       await exec('BEGIN TRANSACTION;');
-      await exec(
-        'INSERT INTO messages_crdt (hlc, dataset, rowId, batchId, col, val, actor) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [msg.hlc, msg.dataset, msg.rowId, msg.batchId, msg.col, msg.val, msg.actor],
-      );
-      const latestTimestampSQL = `SELECT hlc
-                                  FROM messages_crdt
-                                  WHERE dataset = ?
-                                    AND rowId = ?
-                                    AND col = ?
-                                  ORDER BY hlc DESC
-                                  LIMIT 1`;
-      const latestTimestampResponse = await exec(latestTimestampSQL, [
-        msg.dataset,
-        msg.rowId,
-        msg.col,
-      ]);
-      const latestTimestamp = latestTimestampResponse.result?.resultRows?.[0]?.hlc;
-      if (latestTimestamp && latestTimestamp <= msg.hlc) {
-        await exec(
-          `INSERT INTO ${msg.dataset} (id, ${msg.col})
-           VALUES (?, ?)
-           ON CONFLICT(id) DO UPDATE SET ${msg.col} = excluded.${msg.col}`,
-          [msg.rowId, deserializeValue(msg.val)],
-        );
+      const insertedHlcs = await insertCRDTMessages(messages, exec);
+      if (!insertedHlcs.length) {
+        return;
       }
-      await exec('COMMIT;');
-    } catch (err) {
-      await exec('ROLLBACK;');
-      throw err;
-    }
-  };
-  const debugInfo = `${msg.dataset} ${msg.rowId} ${msg.col} ${msg.val} ${msg.hlc} ${msg.actor}`;
-  console.log('handleCRDTMessage', debugInfo);
-  return queueExec(fn, debugInfo);
-};
-
-const handleStudentCRDTMessage = async (
-  msg: CRDTMessage & { dataset: 'students' },
-): Promise<void> => {
-  const fn = async (exec: Execer) => {
-    try {
-      await exec('BEGIN TRANSACTION;');
-      const [eventId, sid] = msg.rowId.split('_');
-      await exec(
-        'INSERT INTO messages_crdt (hlc, dataset, rowId, batchId, col, val, actor) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [msg.hlc, msg.dataset, msg.rowId, msg.batchId, msg.col, msg.val, msg.actor],
-      );
-      const latestTimestampSQL = `SELECT hlc
-                                  FROM messages_crdt
-                                  WHERE dataset = ?
-                                    AND rowId = ?
-                                    AND col = ?
-                                  ORDER BY hlc DESC
-                                  LIMIT 1`;
-      const latestTimestampResponse = await exec(latestTimestampSQL, [
-        msg.dataset,
-        msg.rowId,
-        msg.col,
-      ]);
-      const latestTimestamp = latestTimestampResponse.result?.resultRows?.[0]?.hlc;
-      if (latestTimestamp && latestTimestamp <= msg.hlc) {
-        await exec(
-          `INSERT INTO students (eventId, sid, ${msg.col})
-           VALUES (?, ?, ?)
-           ON CONFLICT(eventId, sid) DO UPDATE SET ${msg.col} = excluded.${msg.col}`,
-          [eventId, sid, deserializeValue(msg.val)],
-        );
+      const actuallyUpdatedHlcs = await getHlcThatWereActuallyUpdates(insertedHlcs, exec);
+      const upsertSqls: string[] = [];
+      for (const msg of messages) {
+        if (actuallyUpdatedHlcs[msg.hlc]) {
+          if (msg.dataset === 'students') {
+            const [eventId, sid] = msg.rowId.split('_');
+            upsertSqls.push(
+              `INSERT INTO students (eventId, sid, ${msg.col})
+               VALUES ('${eventId}', '${sid}', ${getSqlStringValue(msg)})
+               ON CONFLICT(eventId, sid) DO UPDATE SET ${msg.col} = excluded.${msg.col}`,
+            );
+          } else {
+            upsertSqls.push(
+              `INSERT INTO ${msg.dataset} (id, ${msg.col})
+               VALUES ('${msg.rowId}', ${getSqlStringValue(msg)})
+               ON CONFLICT(id) DO UPDATE SET ${msg.col} = excluded.${msg.col}`,
+            );
+          }
+        }
+      }
+      if (upsertSqls.length) {
+        const allUpsertsSql = upsertSqls.join(';\n');
+        await exec(allUpsertsSql);
       }
       await exec('COMMIT;');
     } catch (err) {
