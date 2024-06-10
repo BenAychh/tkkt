@@ -4,7 +4,7 @@ import {
   addTicket,
   getStudentFull,
   getStudents,
-  insertStudent,
+  insertStudents,
   type StudentInsert,
   type StudentUpdate,
   type TicketUpdate,
@@ -61,7 +61,22 @@ export const useStudentsStore = defineStore('students', {
         return;
       }
       const studentWithEvent = { ...student, eventId: event.id };
-      await insertStudent(studentWithEvent, myAdminId);
+      await insertStudents([studentWithEvent], myAdminId);
+      await this.loadStudents();
+    },
+    async insertStudents(students: Omit<StudentInsert, 'eventId'>[]): Promise<void> {
+      const eventStore = useEventsStore();
+      const event = eventStore.getEvent;
+      if (!event) {
+        return;
+      }
+      const adminStore = useAdminsStore();
+      const myAdminId = adminStore.getMyAdminId;
+      if (!myAdminId) {
+        return;
+      }
+      const studentsWithEvents = students.map((student) => ({ ...student, eventId: event.id }));
+      await insertStudents(studentsWithEvents, myAdminId);
       await this.loadStudents();
     },
     async upsertStudent(student: Omit<StudentUpdate, 'eventId'>): Promise<void> {

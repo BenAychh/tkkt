@@ -120,20 +120,6 @@ const getHlcThatWereActuallyUpdates = async (insertedMessages: CRDTMessage[], ex
   );
 };
 
-function getSqlStringValue(msg: CRDTMessage<Record<string, any>>) {
-  const value = deserializeValue(msg.val);
-  let valueInSql = value;
-  // it's all local, if people want to sql inject themselves, let them
-  if (typeof value === 'string') {
-    valueInSql = `'${value}'`;
-  } else if (value === null) {
-    valueInSql = 'NULL';
-  } else if (typeof value === 'boolean') {
-    valueInSql = value ? 'TRUE' : 'FALSE';
-  }
-  return valueInSql;
-}
-
 export const handleCRDTMessages = async (messages: CRDTMessage[]): Promise<void> => {
   const fn = async (exec: Execer) => {
     try {
@@ -150,13 +136,13 @@ export const handleCRDTMessages = async (messages: CRDTMessage[]): Promise<void>
             const [eventId, sid] = msg.rowId.split('_');
             upsertSqls.push(
               `INSERT INTO students (eventId, sid, ${msg.col})
-               VALUES ('${eventId}', '${sid}', ${getSqlStringValue(msg)})
+               VALUES ('${eventId}', '${sid}', ${escape(deserializeValue(msg.val))})
                ON CONFLICT(eventId, sid) DO UPDATE SET ${msg.col} = excluded.${msg.col}`,
             );
           } else {
             upsertSqls.push(
               `INSERT INTO ${msg.dataset} (id, ${msg.col})
-               VALUES ('${msg.rowId}', ${getSqlStringValue(msg)})
+               VALUES ('${msg.rowId}', ${escape(deserializeValue(msg.val))})
                ON CONFLICT(id) DO UPDATE SET ${msg.col} = excluded.${msg.col}`,
             );
           }
@@ -201,3 +187,54 @@ export interface CRDTMessage<T = Record<string, any>> {
   hlc: string;
   actor: string;
 }
+
+const CHARS_GLOBAL_REGEXP = /[\0\b\t\n\r\x1a"'\\]/g; // eslint-disable-line no-control-regex
+const CHARS_ESCAPE_MAP: Record<string, string> = {
+  '\0': '\\0',
+  '\b': '\\b',
+  '\t': '\\t',
+  '\n': '\\n',
+  '\r': '\\r',
+  '\x1a': '\\Z',
+  '"': '""',
+  "'": "''",
+  '\\': '\\\\',
+};
+
+function escapeString(val: string) {
+  let chunkIndex = (CHARS_GLOBAL_REGEXP.lastIndex = 0);
+  let escapedVal = '';
+  let match;
+
+  while ((match = CHARS_GLOBAL_REGEXP.exec(val))) {
+    escapedVal += val.slice(chunkIndex, match.index) + CHARS_ESCAPE_MAP[match[0]];
+    chunkIndex = CHARS_GLOBAL_REGEXP.lastIndex;
+  }
+
+  if (chunkIndex === 0) {
+    // Nothing was escaped
+    return "'" + val + "'";
+  }
+
+  if (chunkIndex < val.length) {
+    return "'" + escapedVal + val.slice(chunkIndex) + "'";
+  }
+
+  return "'" + escapedVal + "'";
+}
+
+const escape = (val: any) => {
+  if (val === undefined || val === null) {
+    return 'NULL';
+  }
+
+  switch (typeof val) {
+    case 'boolean':
+      return val ? 'true' : 'false';
+    case 'number':
+      return val + '';
+    case 'string':
+      return escapeString(val);
+  }
+  throw new Error('Unserializable value type: ' + JSON.stringify(val));
+};

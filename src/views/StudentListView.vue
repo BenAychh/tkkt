@@ -3,6 +3,7 @@ import { useStudentsStore } from '@/stores/students';
 import VirtualScroller from 'primevue/virtualscroller';
 import AddStudent from '@/components/AddStudent.vue';
 import GeneralHeader from '@/components/EventHeader.vue';
+import BulkAddStudent from '@/components/BulkAddStudent.vue';
 
 const studentStore = useStudentsStore();
 studentStore.loadStudents();
@@ -11,10 +12,13 @@ studentStore.loadStudents();
   <GeneralHeader>
     <template #title>All Students</template>
     <template #actions>
-      <AddStudent />
+      <div>
+        <BulkAddStudent />
+        <AddStudent />
+      </div>
     </template>
   </GeneralHeader>
-  <VirtualScroller :delay="150" :itemSize="50" :items="studentStore.getStudents">
+  <VirtualScroller :itemSize="50" :items="studentStore.getStudents" class="h-[50svh]">
     <template v-slot:item="{ item, options }">
       <router-link :to="`student/${item.sid}`" append>
         <div
