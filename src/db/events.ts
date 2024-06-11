@@ -100,3 +100,30 @@ export const getEvent = async (id: string): Promise<EventWithHistory | null> => 
   const history = await getCRDTMessages('events', id);
   return { ...event, history };
 };
+
+export const getMultipleEvents = async (ids: string[]): Promise<Record<string, Event>> => {
+  const eventSQL = `
+      SELECT events.*,
+             count(tickets.id)                  as ticketSold,
+             coalesce(sum(tickets.redeemed), 0) as ticketsRedeemed,
+             count(students.sid)                as studentCount
+      FROM events
+               LEFT JOIN students ON students.eventId = events.id AND students.tombstone = 0
+               LEFT JOIN tickets on tickets.studentSid = students.sid AND tickets.eventId = students.eventId AND
+                                    tickets.tombstone = 0
+      WHERE events.id IN (${ids.map(() => '?').join(',')})
+      GROUP BY events.id
+  `;
+  const res = await queueExec((execer) => execer(eventSQL, ids));
+  if (!res.result) {
+    return {};
+  }
+  const events = res.result.resultRows as Event[];
+  return events.reduce(
+    (acc, event) => {
+      acc[event.id] = event;
+      return acc;
+    },
+    {} as Record<string, Event>,
+  );
+};

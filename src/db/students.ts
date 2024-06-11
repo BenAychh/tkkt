@@ -106,7 +106,7 @@ const getStudent = async (eventId: string, sid: string): Promise<Student | null>
   return students[sid] || null;
 };
 
-const getMultipleStudents = async (
+export const getMultipleStudents = async (
   eventId: string,
   sids: string[],
 ): Promise<Record<string, Student>> => {
