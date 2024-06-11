@@ -49,6 +49,7 @@ const getStudentWithScores = (
 };
 
 export const search = async (searchTerm: string, eventId: string): Promise<SearchResult[]> => {
+  console.log('searchTerm', searchTerm, 'eventId', eventId);
   if (!searchTerm) {
     return [];
   }
@@ -130,12 +131,11 @@ const searchStudents = async (
       SELECT sid, name, eventId, tombstone, 'student' as type
       FROM students
       WHERE eventId = ?
-          AND name LIKE '%' || ? || '%'
-         OR sid LIKE '%' || ? || '%'
+        AND (name LIKE '%' || ? || '%' OR sid LIKE '%' || ? || '%')
       LIMIT 100
   `;
   return queueExec(async (exec) => {
-    const res = await exec(studentSearchSQL, [eventId, searchTerm]);
+    const res = await exec(studentSearchSQL, [eventId, searchTerm, searchTerm]);
     const results =
       (res.result?.resultRows as Omit<StudentRawSearchResult, 'jaroWinklerScore'>[]) || [];
     return results.map(getStudentWithScores(searchTerm));
@@ -154,7 +154,8 @@ const getAndMergeStudents = async (
   const onlyFoundStudents = rawStudents.filter((rawStudent) => students[rawStudent.sid]);
   return onlyFoundStudents.map((rawStudents) => {
     const student = students[rawStudents.sid];
-    return { type: 'student', student, jaroWinklerScore: rawStudents.jaroWinklerScore };
+    const uniqueId = `${student.sid}_${student.eventId}`;
+    return { type: 'student', uniqueId, student, jaroWinklerScore: rawStudents.jaroWinklerScore };
   });
 };
 
@@ -167,7 +168,12 @@ const getAndMergeAdmins = async (rawAdmins: AdminRawSearchResult[]): Promise<Sea
   const onlyFoundAdmins = rawAdmins.filter((rawAdmin) => admins[rawAdmin.id]);
   return onlyFoundAdmins.map((rawAdmin) => {
     const admin = admins[rawAdmin.id];
-    return { type: 'admin', admin, jaroWinklerScore: rawAdmin.jaroWinklerScore };
+    return {
+      type: 'admin',
+      uniqueId: admin.id,
+      admin,
+      jaroWinklerScore: rawAdmin.jaroWinklerScore,
+    };
   });
 };
 
@@ -180,6 +186,11 @@ const getAndMergeEvents = async (rawEvents: EventRawSearchResult[]): Promise<Sea
   const onlyFoundEvents = rawEvents.filter((rawEvent) => events[rawEvent.id]);
   return onlyFoundEvents.map((rawEvent) => {
     const event = events[rawEvent.id];
-    return { type: 'event', event, jaroWinklerScore: rawEvent.jaroWinklerScore };
+    return {
+      type: 'event',
+      event,
+      uniqueId: event.id,
+      jaroWinklerScore: rawEvent.jaroWinklerScore,
+    };
   });
 };

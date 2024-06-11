@@ -2,8 +2,11 @@ import type { Admin } from '@/domain/admins';
 import { defineStore } from 'pinia';
 import type { Student } from '@/domain/student';
 import type { Event } from '@/domain/event';
+import { search } from '@/db/search';
+import { useEventsStore } from '@/stores/events';
 
 interface BaseSearchResult {
+  uniqueId: string;
   type: 'student' | 'admin' | 'event';
   jaroWinklerScore: number;
 }
@@ -35,9 +38,24 @@ export const useSearchStore = defineStore('search', {
     results: [],
     searchTerm: '',
   }),
+  getters: {
+    getResults(state): SearchResult[] {
+      return state.results;
+    },
+    getSearchTerm(state): string | null {
+      return state.searchTerm;
+    },
+  },
   actions: {
     async search(searchTerm: string): Promise<void> {
       this.searchTerm = searchTerm;
+      if (!searchTerm) {
+        this.results = [];
+        return;
+      }
+      const eventStore = useEventsStore();
+      const event = eventStore.getEvent;
+      this.results = (await search(searchTerm, event?.id ?? '')) || [];
     },
   },
   debounce: {

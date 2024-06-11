@@ -3,9 +3,11 @@ import InputText from 'primevue/inputtext';
 import Popover from 'primevue/popover';
 import InputGroup from 'primevue/inputgroup';
 import InputGroupAddon from 'primevue/inputgroupaddon';
-import Button from 'primevue/button';
+import DataView from 'primevue/dataview';
 import { ref, watch } from 'vue';
 import { useMagicKeys } from '@vueuse/core';
+import { useSearchStore } from '@/stores/search';
+import GlobalSearchLineItem from '@/components/GlobalSearchLineItem.vue';
 
 const popover = ref();
 const input = ref();
@@ -24,6 +26,7 @@ watch(controlSpace, (value) => {
     input.value.$el.focus();
   }
 });
+const searchStore = useSearchStore();
 </script>
 
 <template>
@@ -36,34 +39,15 @@ watch(controlSpace, (value) => {
       placeholder="Control + Space"
       @blur="hidePopover($event)"
       @focus="showPopover($event)"
+      @input="searchStore.search($event.target.value)"
     />
   </InputGroup>
   <Popover ref="popover" :dismissable="false">
-    <div class="flex flex-col gap-4 w-[25rem]">
-      <div>
-        <span class="font-medium block mb-2">Share this document</span>
-        <InputGroup>
-          <InputText
-            class="w-[25rem]"
-            readonly
-            value="https://primevue.org/12323ff26t2g243g423g234gg52hy25XADXAG3"
-          ></InputText>
-          <InputGroupAddon>
-            <i class="pi pi-copy"></i>
-          </InputGroupAddon>
-        </InputGroup>
-      </div>
-      <div>
-        <span class="font-medium block mb-2">Invite Member</span>
-        <InputGroup>
-          <InputText disabled />
-          <Button icon="pi pi-users" label="Invite"></Button>
-        </InputGroup>
-      </div>
-      <div>
-        <span class="font-medium block mb-2">Team Members</span>
-      </div>
-    </div>
+    <DataView :value="searchStore.getResults">
+      <template #list="slotProps">
+        <GlobalSearchLineItem v-for="item in slotProps.items" :key="item.uniqueId" :item="item" />
+      </template>
+    </DataView>
   </Popover>
 </template>
 
