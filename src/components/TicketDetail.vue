@@ -1,102 +1,102 @@
 <script lang="ts" setup>
-import { computed, defineProps, ref } from 'vue'
-import { useToast } from 'primevue/usetoast'
-import SplitButton from 'primevue/splitbutton'
-import Dialog from 'primevue/dialog'
-import type { TicketWithHistory } from '@/domain/student'
-import { useStudentsStore } from '@/stores/students'
-import History from '@/components/TicketHistory.vue'
+import { computed, defineProps, ref } from 'vue';
+import { useToast } from 'primevue/usetoast';
+import SplitButton from 'primevue/splitbutton';
+import Dialog from 'primevue/dialog';
+import type { TicketWithHistory } from '@/domain/student';
+import { useStudentsStore } from '@/stores/students';
+import History from '@/components/TicketHistory.vue';
 
-const toast = useToast()
-const studentStore = useStudentsStore()
+const toast = useToast();
+const studentStore = useStudentsStore();
 
-const props = defineProps<{ ticket: TicketWithHistory }>()
+const props = defineProps<{ ticket: TicketWithHistory }>();
 const unredeem = async () => {
-  await studentStore.updateTicket({ id: props.ticket.id, redeemed: false })
+  await studentStore.updateTicket({ id: props.ticket.id, redeemed: false });
   toast.add({
     severity: 'success',
     summary: 'Unredeemed',
     detail: 'Ticket Unredeemed',
-    life: 3000
-  })
-}
+    life: 3000,
+  });
+};
 const redeem = async () => {
-  await studentStore.updateTicket({ id: props.ticket.id, redeemed: true })
+  await studentStore.updateTicket({ id: props.ticket.id, redeemed: true });
   toast.add({
     severity: 'success',
     summary: 'Redeemed',
     detail: 'Ticket Redeemed',
-    life: 3000
-  })
-}
+    life: 3000,
+  });
+};
 const restore = async () => {
-  await studentStore.updateTicket({ id: props.ticket.id, tombstone: false })
+  await studentStore.updateTicket({ id: props.ticket.id, tombstone: false });
   toast.add({
     severity: 'success',
     summary: 'Restored',
     detail: 'Ticket Restored',
-    life: 3000
-  })
-}
+    life: 3000,
+  });
+};
 const deleteTicket = async () => {
-  await studentStore.updateTicket({ id: props.ticket.id, tombstone: true })
+  await studentStore.updateTicket({ id: props.ticket.id, tombstone: true });
   toast.add({
     severity: 'warn',
     summary: 'Deleted',
     detail: 'Ticket Deleted',
-    life: 3000
-  })
-}
-const historyVisible = ref(false)
+    life: 3000,
+  });
+};
+const historyVisible = ref(false);
 const items = computed(() => {
-  const itemList = []
+  const itemList = [];
   if (!props.ticket.tombstone) {
     if (props.ticket.redeemed) {
       itemList.push({
         label: 'Unredeem',
         icon: 'pi pi-check',
-        command: unredeem
-      })
+        command: unredeem,
+      });
     } else if (!props.ticket.tombstone) {
       itemList.push({
         label: 'Redeem',
         icon: 'pi pi-check-circle',
-        command: redeem
-      })
+        command: redeem,
+      });
     }
     itemList.push({
       label: 'Delete',
       icon: 'pi pi-trash',
-      command: deleteTicket
-    })
+      command: deleteTicket,
+    });
   }
   if (props.ticket.tombstone) {
     itemList.push({
       label: 'Restore',
       icon: 'pi pi-undo',
-      command: restore
-    })
+      command: restore,
+    });
   }
 
   itemList.push({
     label: 'History',
     icon: 'pi pi-history',
     command: () => {
-      historyVisible.value = true
-    }
-  })
-  return itemList
-})
+      historyVisible.value = true;
+    },
+  });
+  return itemList;
+});
 const actOnTicket = async () => {
   if (props.ticket.tombstone) {
-    return
+    return;
   }
   if (props.ticket.redeemed) {
-    return null
+    return null;
   } else {
-    return redeem()
+    return redeem();
   }
-}
+};
 </script>
 
 <template>

@@ -5,7 +5,7 @@ import type { Event } from '@/domain/event';
 import type { Student } from '@/domain/student';
 import { jaroWinkler } from 'jaro-winkler-typescript';
 import { sort } from 'remeda';
-import { getMultipleStudents } from '@/db/students';
+import { getMultipleStudents, getTicketsForStudents } from '@/db/students';
 import { getMultipleAdmins } from '@/db/admins';
 import { getMultipleEvents } from '@/db/events';
 
@@ -49,7 +49,6 @@ const getStudentWithScores = (
 };
 
 export const search = async (searchTerm: string, eventId: string): Promise<SearchResult[]> => {
-  console.log('searchTerm', searchTerm, 'eventId', eventId);
   if (!searchTerm) {
     return [];
   }
@@ -151,11 +150,20 @@ const getAndMergeStudents = async (
   const sids = rawStudents.map((student) => student.sid);
   const eventId = rawStudents[0].eventId;
   const students = await getMultipleStudents(eventId, sids);
+  const studentTickets = await getTicketsForStudents(eventId, sids);
   const onlyFoundStudents = rawStudents.filter((rawStudent) => students[rawStudent.sid]);
   return onlyFoundStudents.map((rawStudents) => {
     const student = students[rawStudents.sid];
     const uniqueId = `${student.sid}_${student.eventId}`;
-    return { type: 'student', uniqueId, student, jaroWinklerScore: rawStudents.jaroWinklerScore };
+    return {
+      type: 'student',
+      uniqueId,
+      student: {
+        ...student,
+        tickets: studentTickets[student.sid] || [],
+      },
+      jaroWinklerScore: rawStudents.jaroWinklerScore,
+    };
   });
 };
 

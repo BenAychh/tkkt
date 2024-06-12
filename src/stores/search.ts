@@ -1,6 +1,6 @@
 import type { Admin } from '@/domain/admins';
 import { defineStore } from 'pinia';
-import type { Student } from '@/domain/student';
+import type { Student, Ticket } from '@/domain/student';
 import type { Event } from '@/domain/event';
 import { search } from '@/db/search';
 import { useEventsStore } from '@/stores/events';
@@ -11,17 +11,17 @@ interface BaseSearchResult {
   jaroWinklerScore: number;
 }
 
-interface StudentSearchResult extends BaseSearchResult {
+export interface StudentSearchResult extends BaseSearchResult {
   type: 'student';
-  student: Student;
+  student: Student & { tickets: Ticket[] };
 }
 
-interface AdminSearchResult extends BaseSearchResult {
+export interface AdminSearchResult extends BaseSearchResult {
   type: 'admin';
   admin: Admin;
 }
 
-interface EventSearchResult extends BaseSearchResult {
+export interface EventSearchResult extends BaseSearchResult {
   type: 'event';
   event: Event;
 }
@@ -57,15 +57,13 @@ export const useSearchStore = defineStore('search', {
       const event = eventStore.getEvent;
       this.results = (await search(searchTerm, event?.id ?? '')) || [];
     },
+    async clear() {
+      this.results = [];
+      this.searchTerm = '';
+    },
   },
   debounce: {
-    // you can pass an array of arguments if your debounce implementation accepts extra arguments
-    search: [
-      100,
-      {
-        // options passed to debounce
-        isImmediate: true,
-      },
-    ],
+    // almost no debounce, just a tiny bit for a hand-held scanner
+    search: [25],
   },
 });

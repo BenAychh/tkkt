@@ -137,7 +137,8 @@ export const getMultipleStudents = async (
 
 const addHistoryAndTicketsToStudent = async (student: Student): Promise<StudentFull | null> => {
   const history = await getCRDTMessages('students', `${student.eventId}_${student.sid}`);
-  const tickets = await getTicketsForStudent(student.eventId, student.sid);
+  const studentTicketMap = await getTicketsForStudents(student.eventId, [student.sid]);
+  const tickets = studentTicketMap[student.sid] || [];
   const ticketsWithHistory = await Promise.all(
     tickets.map(async (ticket) => {
       const history = await getCRDTMessages('tickets', ticket.id);
@@ -187,16 +188,32 @@ const getTicket = async (id: string): Promise<Ticket | null> => {
   return queueExec(fn);
 };
 
-const getTicketsForStudent = async (eventId: string, sid: string): Promise<Ticket[]> => {
+export const getTicketsForStudents = async (
+  eventId: string,
+  sids: string[],
+): Promise<Record<string, Ticket[]>> => {
   const fn = async (exec: Execer) => {
     const ticketSQL = `
         SELECT tickets.*
         FROM tickets
         WHERE tickets.eventId = ?
-          AND tickets.studentSid = ?
+          AND tickets.studentSid IN (${sids.map(() => '?').join(',')})
+        ORDER BY tickets.id
     `;
-    const res = await exec(ticketSQL, [eventId, sid]);
-    return (res.result?.resultRows as Ticket[]) || [];
+    const res = await exec(ticketSQL, [eventId, ...sids]);
+    const tickets = (res.result?.resultRows as Ticket[]) || [];
+    return (
+      tickets.reduce(
+        (acc, ticket) => {
+          if (!acc[ticket.studentSid]) {
+            acc[ticket.studentSid] = [];
+          }
+          acc[ticket.studentSid].push(ticket);
+          return acc;
+        },
+        {} as Record<string, Ticket[]>,
+      ) || {}
+    );
   };
   return queueExec(fn);
 };
